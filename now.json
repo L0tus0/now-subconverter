@@ -1,0 +1,47 @@
+{
+    "version": 2,
+    "github": {
+        "silent": true
+    },
+    "builds": [
+        {
+            "src": "sub-web/**",
+            "use": "@now/static"
+        },
+        {
+            "src": "subconverter/subconverter.exe",
+            "use": "now-static-bin",
+            "config": {
+                "port": 25500,
+                "timeout": 1500,
+                "includeFiles": [
+                    "subconverter/**"
+                ]
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(js|css|fonts)/(.*)",
+            "headers": {
+                "cache-control": "max-age=31536000, immutable"
+            },
+            "dest": "sub-web/$1/$2"
+        },
+        {
+            "handle": "filesystem"
+        },
+        {
+            "src": "/",
+            "dest": "sub-web/index.html"
+        },
+        {
+            "src": "/favicon\\.ico",
+            "dest": "sub-web/favicon.ico"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "subconverter/subconverter.exe"
+        }
+    ]
+}
