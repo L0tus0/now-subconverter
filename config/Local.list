@@ -1,7 +1,8 @@
 # 内容：Local 本地
-# 数量：4条
+# 数量：6条
 DOMAIN-SUFFIX,cc98.org
 DOMAIN-SUFFIX,optica.org
 DOMAIN-SUFFIX,figshare.com
 DOMAIN-KEYWORD,uptodate
 DOMAIN-SUFFIX,mathworks.com
+DOMAIN-SUFFIX,mathworks.cn
