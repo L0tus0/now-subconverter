@@ -90,7 +90,7 @@ jobs:
       uses: fountainhead/action-wait-for-check@v1.0.0
       id: wait
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.REPO_TOKEN }}
         checkName: "Linux x86_64 Build"
         ref: ${{ steps.get_sha.outputs.sha }}
         repo: subconverter
@@ -169,4 +169,4 @@ jobs:
         message: ${{ env.message }}
         add: "-A"
       env:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.REPO_TOKEN }}
