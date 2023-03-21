@@ -51,4 +51,4 @@ jobs:
         message: "Update sub-web from L0tus0/sub-web"
         add: "-A"
       env:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.REPO_TOKEN }}
