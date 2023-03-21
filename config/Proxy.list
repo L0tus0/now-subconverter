@@ -1,4 +1,5 @@
 # 内容：Proxy 代理
-# 数量：1条
+# 数量：3条
 DOMAIN-SUFFIX,prism.optica.org
 DOMAIN-SUFFIX,qbittorrent.org
+DOMAIN-SUFFIX,bing.com
