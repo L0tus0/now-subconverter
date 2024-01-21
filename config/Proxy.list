@@ -1,4 +1,7 @@
 # 内容：Proxy 代理
-# 数量：2条
+# 数量：5条
 DOMAIN-SUFFIX,prism.optica.org
 DOMAIN-SUFFIX,qbittorrent.org
+DOMAIN-SUFFIX,cdc.gov
+DOMAIN-SUFFIX,fda.gov
+DOMAIN-SUFFIX,clinicaltrials.gov
