@@ -1,24 +1,35 @@
 # 内容：Local 本地
-# 数量：20条
+# 数量：18条
+# Optica Publishing group
 DOMAIN-SUFFIX,optica.org
 DOMAIN-SUFFIX,figshare.com
+
+# ZJU: uptodate database
 DOMAIN-KEYWORD,uptodate
+
+# ZJU: MATLAB
 DOMAIN-SUFFIX,mathworks.com
 DOMAIN-SUFFIX,mathworks.cn
-DOMAIN-KEYWORD,subhd
-DOMAIN-KEYWORD,zimuku
-DOMAIN-SUFFIX,90tsg.com
+
+# APTV
 DOMAIN-SUFFIX,live.v1.mk
 DOMAIN-SUFFIX,live.goodiptv.club
 DOMAIN-SUFFIX,cntv.sbs
 DOMAIN-SUFFIX,epg.pw
+IP-CIDR,148.135.93.213/32,no-resolve
+DOMAIN-SUFFIX,node1.olelive.com
+
+# Jepoic Website
 DOMAIN-SUFFIX,conversaio.top
+
+# America Goverment Website
 DOMAIN-SUFFIX,cdc.gov
 DOMAIN-SUFFIX,fda.gov
 DOMAIN-SUFFIX,clinicaltrials.gov
-IP-CIDR,148.135.93.213/32,no-resolve
-DOMAIN-SUFFIX,node1.olelive.com
 
 # Complete Anatomy
 DOMAIN-SUFFIX,elsevier.demdex.net
 DOMAIN-KEYWORD,3d4medic
+
+# iHerb
+DOMAIN-SUFFIX,iherb.com
