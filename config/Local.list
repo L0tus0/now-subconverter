@@ -26,6 +26,7 @@ DOMAIN-SUFFIX,conversaio.top
 DOMAIN-SUFFIX,cdc.gov
 DOMAIN-SUFFIX,fda.gov
 DOMAIN-SUFFIX,clinicaltrials.gov
+DOMAIN-SUFFIX,nih.gov
 
 # Complete Anatomy
 DOMAIN-SUFFIX,elsevier.demdex.net
