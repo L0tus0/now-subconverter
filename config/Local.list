@@ -27,6 +27,9 @@ DOMAIN-SUFFIX,cdc.gov
 DOMAIN-SUFFIX,fda.gov
 DOMAIN-SUFFIX,clinicaltrials.gov
 DOMAIN-SUFFIX,nih.gov
+DOMAIN-SUFFIX,cancer.gov
+DOMAIN-SUFFIX,ahrq.gov
+DOMAIN-SUFFIX,medlineplus.gov
 
 # Complete Anatomy
 DOMAIN-SUFFIX,elsevier.demdex.net
