@@ -1,0 +1,10 @@
+# Optica Publishing group
+DOMAIN-SUFFIX,optica.org
+DOMAIN-SUFFIX,figshare.com
+
+# ZJU: uptodate database
+DOMAIN-KEYWORD,uptodate
+
+# ZJU: MATLAB
+DOMAIN-SUFFIX,mathworks.com
+DOMAIN-SUFFIX,mathworks.cn
