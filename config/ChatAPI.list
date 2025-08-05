@@ -1,4 +1,5 @@
 # 内容：ChatAPI
-# 数量：2条
+# 数量：3条
 DOMAIN-SUFFIX,grok.com
 DOMAIN-SUFFIX,x.ai
+DOMAIN-SUFFIX,ping0.cc
