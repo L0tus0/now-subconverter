@@ -137,6 +137,25 @@ module LocalEntryDNS
         end
       end
     end.each(&:value)
+    # A burst may leave a resolver temporarily unanswered. Retry only missing
+    # DoH answers once, at lower concurrency and within the same time budget.
+    # Keep valid answers unchanged; disagreement must remain visible.
+    retries = Queue.new
+    evidence.each do |host, item|
+      item['doh'].each_with_index { |ips, i| retries << [host, i] if ips.empty? }
+    end
+    2.times.map do
+      Thread.new do
+        loop do
+          break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+          task = (retries.pop(true) rescue nil)
+          break unless task
+          host, index = task
+          ips = doh(host, endpoints[index], gid)
+          lock.synchronize { evidence[host]['doh'][index] = ips }
+        end
+      end
+    end.each(&:value)
     evidence
   end
 

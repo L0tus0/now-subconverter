@@ -61,7 +61,7 @@
    report_path: /etc/openclash/custom/entry-groups-report.yaml
    ```
 
-   `diagnostic_dns` 可改为当地运营商 DNS；它只用于对照。查询进程使用 `core_gid` 绕过 OpenClash 本机 DNS 重定向，部署时必须核对当地防火墙和内核运行 GID。DoH 端点应先在本机验证可直连且证书有效。查询使用 12 个工作线程，总预算 25 秒，正在执行的子查询最多再占约 4 秒。
+   `diagnostic_dns` 可改为当地运营商 DNS；它只用于对照。查询进程使用 `core_gid` 绕过 OpenClash 本机 DNS 重定向，部署时必须核对当地防火墙和内核运行 GID。DoH 端点应先在本机验证可直连且证书有效。首轮使用 12 个工作线程；对缺失的 DoH 结果以 2 个线程最多补查一次，不替换已有有效结果，且共用 25 秒总预算。正在执行的子查询最多再占约 4 秒。
 
    可选 `core` 默认 `/etc/openclash/clash`，`core_home` 默认 `/etc/openclash`。诊断报告含节点域名及解析证据，权限为 0600，请勿公开上传。
 

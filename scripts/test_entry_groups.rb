@@ -84,4 +84,22 @@ ensure
  LocalEntryDNS.define_singleton_method(:collect,original_collect)
  File.unlink(path) if File.file?(path)
 end
-puts 'PASS: regional grouping, strict DNS agreement, unknown separation, wire validation, DNS failure retention and atomic publish'
+original_doh=LocalEntryDNS.method(:doh)
+original_local=LocalEntryDNS.method(:local)
+begin
+ calls=Hash.new(0);lock=Mutex.new
+ LocalEntryDNS.define_singleton_method(:doh) do |host,endpoint,_gid|
+  count=lock.synchronize{calls[[host,endpoint]]+=1}
+  next [] if host=='failed.invalid'
+  endpoint==LocalEntryDNS::DEFAULT_DOH.last && count==1 ? [] : ['1.1.1.1']
+ end
+ LocalEntryDNS.define_singleton_method(:local){|*_args|['1.1.1.1']}
+ recovered=LocalEntryDNS.collect(%w[transient.invalid failed.invalid],{})
+ check(LocalEntryDNS.confirmed(recovered)['transient.invalid']==['1.1.1.1'],'Transient DNS failure not recovered')
+ check(recovered['failed.invalid']['doh'].all?(&:empty?),'Persistent failure incorrectly accepted')
+ check(calls.values.max==2 && calls[['transient.invalid',LocalEntryDNS::DEFAULT_DOH.first]]==1,'Retries unbounded or valid evidence replaced')
+ensure
+ LocalEntryDNS.define_singleton_method(:doh,original_doh)
+ LocalEntryDNS.define_singleton_method(:local,original_local)
+end
+puts 'PASS: regional grouping, strict DNS agreement, bounded DNS retry, baseline retention and atomic publish'
