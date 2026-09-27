@@ -69,7 +69,7 @@ check(c['proxy-groups'].last['proxies']==['REJECT'],'Empty pool became DIRECT')
 original_collect=LocalEntryDNS.method(:collect)
 path='/tmp/entry-dns-failure-'+Process.pid.to_s
 begin
- LocalEntryDNS.define_singleton_method(:collect) do |hosts,_settings|
+ LocalEntryDNS.define_singleton_method(:collect) do |hosts,_settings,**_kwargs|
   hosts.to_h{|h|[h,{'doh'=>[[],[]],'local'=>['1.1.1.1']}]}
  end
  baseline=fixture.to_yaml
@@ -91,13 +91,21 @@ begin
  LocalEntryDNS.define_singleton_method(:doh) do |host,endpoint,_gid|
   count=lock.synchronize{calls[[host,endpoint]]+=1}
   next [] if host=='failed.invalid'
-  endpoint==LocalEntryDNS::DEFAULT_DOH.last && count==1 ? [] : ['1.1.1.1']
+  endpoint==LocalEntryDNS::DEFAULT_DOH.last && count<3 ? [] : ['1.1.1.1']
  end
  LocalEntryDNS.define_singleton_method(:local){|*_args|['1.1.1.1']}
- recovered=LocalEntryDNS.collect(%w[transient.invalid failed.invalid],{})
+ stats={}
+ recovered=LocalEntryDNS.collect(%w[transient.invalid failed.invalid],{},stats:stats)
  check(LocalEntryDNS.confirmed(recovered)['transient.invalid']==['1.1.1.1'],'Transient DNS failure not recovered')
  check(recovered['failed.invalid']['doh'].all?(&:empty?),'Persistent failure incorrectly accepted')
- check(calls.values.max==2 && calls[['transient.invalid',LocalEntryDNS::DEFAULT_DOH.first]]==1,'Retries unbounded or valid evidence replaced')
+ check(calls.values.max==3 && calls[['transient.invalid',LocalEntryDNS::DEFAULT_DOH.first]]==1,'Retries unbounded or valid evidence replaced')
+ check(stats['retry_rounds'].length==2 && stats['retry_rounds'].last['recovered']==1,'Retry recovery statistics incorrect')
+ calls.clear
+ LocalEntryDNS.collect(['transient.invalid'],{'dns_retries'=>0})
+ check(calls.values.max==1,'Disabling retries failed')
+ calls.clear
+ LocalEntryDNS.collect(['failed.invalid'],{'resolution_budget'=>0})
+ check(calls.empty?,'Queries launched after deadline')
 ensure
  LocalEntryDNS.define_singleton_method(:doh,original_doh)
  LocalEntryDNS.define_singleton_method(:local,original_local)

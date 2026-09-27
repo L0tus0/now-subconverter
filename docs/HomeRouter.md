@@ -56,12 +56,15 @@
      - https://1.12.12.12/dns-query
    diagnostic_dns: 223.5.5.5
    resolution_budget: 25
+   dns_retries: 2
    harden_node_dns: true
    region_order: [香港, 台湾, 新加坡, 日本, 美国, 韩国, 加拿大, 英国, 德国, 法国, 荷兰, 土耳其, 澳大利亚, 印度]
    report_path: /etc/openclash/custom/entry-groups-report.yaml
    ```
 
-   `diagnostic_dns` 可改为当地运营商 DNS；它只用于对照。查询进程使用 `core_gid` 绕过 OpenClash 本机 DNS 重定向，部署时必须核对当地防火墙和内核运行 GID。DoH 端点应先在本机验证可直连且证书有效。首轮使用 12 个工作线程；对缺失的 DoH 结果以 2 个线程最多补查一次，不替换已有有效结果，且共用 25 秒总预算。正在执行的子查询最多再占约 4 秒。
+   `diagnostic_dns` 可改为当地运营商 DNS；它只用于对照。查询进程使用 `core_gid` 绕过 OpenClash 本机 DNS 重定向，部署时必须核对当地防火墙和内核运行 GID。DoH 端点应先在本机验证可直连且证书有效。
+
+   `dns_retries` 是首轮以外的补查轮数，默认 2，允许 0–3。首轮使用 12 个工作线程；仅对缺失的 DoH 结果以 2 个线程补查，默认分别等待 0.25/0.5 秒后开始，不替换已有有效结果或反复查询真实分歧。成功则立即停止，不为了凑次数等待。各轮共用 `resolution_budget`（默认 25 秒），不是每轮各 25 秒；达到预算不再发起新查询，正在执行的子查询最多再占约 4 秒。之后的 YAML 处理和内核校验另计，因此这不是整个 OpenClash 启动的硬超时。
 
    可选 `core` 默认 `/etc/openclash/clash`，`core_home` 默认 `/etc/openclash`。诊断报告含节点域名及解析证据，权限为 0600，请勿公开上传。
 
@@ -69,7 +72,7 @@
 
 脚本先在内存生成候选，再由官方内核 `-t` 验证完整配置，成功后才原子替换目标 YAML。解析、分组或校验失败均不改动输入文件；钩子继续使用生成到当前阶段的可运行基础配置。若手动处理已增强文件，因已无候选池标记而直接返回，避免重复增强。
 
-LuCI 插件日志以 `Custom Overwrite Scripts (entry grouping)` 标记开始、成功、失败或跳过。成功摘要包含候选节点数、入口组数、未确认节点数、双 DoH 一致域名数、ISP 差异数、校验结果和耗时；“成功”表示配置生成成功，不表示全部节点健康。没有候选池时记录跳过。异常详情保存在权限 0600 的 `/tmp/openclash-entry-grouping.log`，内核校验详情在 `/tmp/openclash-entry-validation.log`；公开摘要不打印订阅凭证、域名或原始异常内容。快速启动若跳过整个配置生成阶段，也不会出现本脚本执行日志。
+LuCI 插件日志以 `Custom Overwrite Scripts (entry grouping)` 标记开始、成功、失败或跳过。成功摘要包含候选节点数、入口组数、未确认节点数、双 DoH 一致域名数、ISP 差异数、校验结果和耗时，并记录实际补查轮数、补回结果数、DNS 阶段用时及是否达到预算；“成功”表示配置生成成功，不表示全部节点健康。没有候选池时记录跳过。异常详情保存在权限 0600 的 `/tmp/openclash-entry-grouping.log`，内核校验详情在 `/tmp/openclash-entry-validation.log`；公开摘要不打印订阅凭证、域名或原始异常内容。快速启动若跳过整个配置生成阶段，也不会出现本脚本执行日志。
 
 订阅更新/配置重生成会重新运行脚本；OpenClash 快速启动复用旧运行配置时不会重新查询。需要强制生成时，可在备份后移除 `/tmp/openclash.change` 再重启 OpenClash。部署前保存旧脚本、设置和钩子；回滚时恢复这些文件并重新生成配置。
 

@@ -116,7 +116,8 @@ module EntryGroups
     settings ||= {}
     hosts = config.fetch('proxies').select { |p| pool['proxies'].include?(p['name']) }
                   .map { |p| LocalEntryDNS.hostname(p['server']) }.uniq
-    evidence = LocalEntryDNS.collect(hosts, settings)
+    dns_stats = {}
+    evidence = LocalEntryDNS.collect(hosts, settings, stats: dns_stats)
     confirmed = LocalEntryDNS.confirmed(evidence)
     result = transform(config, confirmed, settings.fetch('region_order', REGIONS.keys))
     if settings.fetch('harden_node_dns', true)
@@ -128,6 +129,7 @@ module EntryGroups
     result['doh_agreed_hosts'] = confirmed.count { |_, ips| !ips.empty? }
     result['local_differs_hosts'] = confirmed.count { |host, ips| !ips.empty? && !evidence[host]['local'].empty? && ips != evidence[host]['local'] }
     result['local_unavailable_hosts'] = evidence.count { |_, e| e['local'].empty? }
+    result['dns_queries'] = dns_stats
     publish(path, config) { |candidate| validate(candidate, settings) }
     # Evidence is diagnostic only. Failure to write it must not break applied configuration.
     if settings['report_path']
@@ -150,7 +152,10 @@ if $PROGRAM_NAME == __FILE__
       exit 3
     end
     elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(1)
-    puts "成功：#{result['candidate_nodes']} 个候选节点 → #{result['groups']} 个地区入口组；未确认节点 #{result['unconfirmed_nodes']}；双 DoH 一致域名 #{result['doh_agreed_hosts']}；ISP 解析差异 #{result['local_differs_hosts']}；内核校验通过，已写入配置；耗时 #{elapsed} 秒。"
+    summary = "成功：#{result['candidate_nodes']} 个候选节点 → #{result['groups']} 个地区入口组；未确认节点 #{result['unconfirmed_nodes']}；双 DoH 一致域名 #{result['doh_agreed_hosts']}；ISP 解析差异 #{result['local_differs_hosts']}；内核校验通过，已写入配置；耗时 #{elapsed} 秒。"
+    stats = result['dns_queries']
+    rounds = stats.fetch('retry_rounds', [])
+    puts "#{summary} DNS 补查 #{rounds.length}/#{stats['retry_limit']} 轮，补回 #{rounds.sum { |r| r['recovered'] }} 个缺失解析结果；DNS 阶段 #{stats['seconds']} 秒#{stats['budget_exhausted'] ? '（已达时间预算，停止追加查询）' : ''}。"
     puts '提示：分组已完成，但 DNS 诊断报告保存失败。' if result['report_failed']
   rescue StandardError => e
     # Full diagnostics stay in the private stderr file, not the public plugin log.

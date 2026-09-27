@@ -107,7 +107,10 @@ module LocalEntryDNS
     []
   end
 
-  def self.collect(hosts, settings)
+  def self.collect(hosts, settings, stats: {})
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    retry_limit = Integer(settings.fetch('dns_retries', 2))
+    raise 'dns_retries must be between 0 and 3' unless (0..3).include?(retry_limit)
     endpoints = settings.fetch('doh', DEFAULT_DOH)
     raise 'Two distinct reviewed DoH endpoints are required' unless endpoints.length == 2 && endpoints.uniq.length == 2 &&
       endpoints.all? { |s| s.match?(%r{\Ahttps://\d+\.\d+\.\d+\.\d+/dns-query\z}) }
@@ -122,7 +125,7 @@ module LocalEntryDNS
         3.times { |i| queue << [host, i] }
       end
     end
-    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + settings.fetch('resolution_budget', 25)
+    deadline = started + settings.fetch('resolution_budget', 25)
     12.times.map do
       Thread.new do
         loop do
@@ -138,24 +141,40 @@ module LocalEntryDNS
       end
     end.each(&:value)
     # A burst may leave a resolver temporarily unanswered. Retry only missing
-    # DoH answers once, at lower concurrency and within the same time budget.
+    # DoH answers at lower concurrency and within the same time budget.
     # Keep valid answers unchanged; disagreement must remain visible.
-    retries = Queue.new
-    evidence.each do |host, item|
-      item['doh'].each_with_index { |ips, i| retries << [host, i] if ips.empty? }
-    end
-    2.times.map do
-      Thread.new do
-        loop do
-          break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
-          task = (retries.pop(true) rescue nil)
-          break unless task
-          host, index = task
-          ips = doh(host, endpoints[index], gid)
-          lock.synchronize { evidence[host]['doh'][index] = ips }
-        end
+    stats['retry_limit'] = retry_limit
+    stats['retry_rounds'] = []
+    retry_limit.times do |round|
+      retries = Queue.new
+      evidence.each do |host, item|
+        item['doh'].each_with_index { |ips, i| retries << [host, i] if ips.empty? }
       end
-    end.each(&:value)
+      remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      break if retries.empty? || remaining <= 0
+      # Brief backoff limits repeated bursts without imposing a delay on success.
+      sleep [0.25 * (round + 1), remaining].min
+      round_stats = { 'attempts' => 0, 'recovered' => 0 }
+      2.times.map do
+        Thread.new do
+          loop do
+            break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+            task = (retries.pop(true) rescue nil)
+            break unless task
+            host, index = task
+            ips = doh(host, endpoints[index], gid)
+            lock.synchronize do
+              evidence[host]['doh'][index] = ips
+              round_stats['attempts'] += 1
+              round_stats['recovered'] += 1 unless ips.empty?
+            end
+          end
+        end
+      end.each(&:value)
+      stats['retry_rounds'] << round_stats if round_stats['attempts'] > 0
+    end
+    stats['seconds'] = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(2)
+    stats['budget_exhausted'] = Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
     evidence
   end
 
