@@ -109,8 +109,8 @@ module LocalEntryDNS
 
   def self.collect(hosts, settings, stats: {})
     started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    retry_limit = Integer(settings.fetch('dns_retries', 2))
-    raise 'dns_retries must be between 0 and 3' unless (0..3).include?(retry_limit)
+    retry_limit = Integer(settings.fetch('dns_retries', 4))
+    raise 'dns_retries must be between 0 and 4' unless (0..4).include?(retry_limit)
     endpoints = settings.fetch('doh', DEFAULT_DOH)
     raise 'Two distinct reviewed DoH endpoints are required' unless endpoints.length == 2 && endpoints.uniq.length == 2 &&
       endpoints.all? { |s| s.match?(%r{\Ahttps://\d+\.\d+\.\d+\.\d+/dns-query\z}) }

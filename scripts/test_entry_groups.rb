@@ -91,15 +91,15 @@ begin
  LocalEntryDNS.define_singleton_method(:doh) do |host,endpoint,_gid|
   count=lock.synchronize{calls[[host,endpoint]]+=1}
   next [] if host=='failed.invalid'
-  endpoint==LocalEntryDNS::DEFAULT_DOH.last && count<3 ? [] : ['1.1.1.1']
+  endpoint==LocalEntryDNS::DEFAULT_DOH.last && count<5 ? [] : ['1.1.1.1']
  end
  LocalEntryDNS.define_singleton_method(:local){|*_args|['1.1.1.1']}
  stats={}
  recovered=LocalEntryDNS.collect(%w[transient.invalid failed.invalid],{},stats:stats)
  check(LocalEntryDNS.confirmed(recovered)['transient.invalid']==['1.1.1.1'],'Transient DNS failure not recovered')
  check(recovered['failed.invalid']['doh'].all?(&:empty?),'Persistent failure incorrectly accepted')
- check(calls.values.max==3 && calls[['transient.invalid',LocalEntryDNS::DEFAULT_DOH.first]]==1,'Retries unbounded or valid evidence replaced')
- check(stats['retry_rounds'].length==2 && stats['retry_rounds'].last['recovered']==1,'Retry recovery statistics incorrect')
+ check(calls.values.max==5 && calls[['transient.invalid',LocalEntryDNS::DEFAULT_DOH.first]]==1,'Retries unbounded or valid evidence replaced')
+ check(stats['retry_limit']==4 && stats['retry_rounds'].length==4 && stats['retry_rounds'].last['recovered']==1,'Fifth-attempt recovery statistics incorrect')
  calls.clear
  LocalEntryDNS.collect(['transient.invalid'],{'dns_retries'=>0})
  check(calls.values.max==1,'Disabling retries failed')

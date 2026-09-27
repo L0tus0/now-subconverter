@@ -56,7 +56,7 @@
      - https://1.12.12.12/dns-query
    diagnostic_dns: 223.5.5.5
    resolution_budget: 25
-   dns_retries: 2
+   dns_retries: 4
    harden_node_dns: true
    region_order: [香港, 台湾, 新加坡, 日本, 美国, 韩国, 加拿大, 英国, 德国, 法国, 荷兰, 土耳其, 澳大利亚, 印度]
    report_path: /etc/openclash/custom/entry-groups-report.yaml
@@ -64,7 +64,7 @@
 
    `diagnostic_dns` 可改为当地运营商 DNS；它只用于对照。查询进程使用 `core_gid` 绕过 OpenClash 本机 DNS 重定向，部署时必须核对当地防火墙和内核运行 GID。DoH 端点应先在本机验证可直连且证书有效。
 
-   `dns_retries` 是首轮以外的补查轮数，默认 2，允许 0–3。首轮使用 12 个工作线程；仅对缺失的 DoH 结果以 2 个线程补查，默认分别等待 0.25/0.5 秒后开始，不替换已有有效结果或反复查询真实分歧。成功则立即停止，不为了凑次数等待。各轮共用 `resolution_budget`（默认 25 秒），不是每轮各 25 秒；达到预算不再发起新查询，正在执行的子查询最多再占约 4 秒。之后的 YAML 处理和内核校验另计，因此这不是整个 OpenClash 启动的硬超时。
+   `dns_retries` 是首轮以外的补查轮数，默认 4，允许 0–4，即每家 DoH 对仍缺失的结果最多尝试 5 次。首轮使用 12 个工作线程；仅对缺失的 DoH 结果以 2 个线程补查，默认分别等待 0.25/0.5/0.75/1 秒后开始，不替换已有有效结果或反复查询真实分歧。成功则立即停止，不为了凑次数等待。各轮共用 `resolution_budget`（默认 25 秒），不是每轮各 25 秒；达到预算不再发起新查询，因此可能在尝试满 5 次前停止。正在执行的子查询最多再占约 4 秒。之后的 YAML 处理和内核校验另计，因此这不是整个 OpenClash 启动的硬超时。未取得结果只代表本轮解析未确认，不等于节点故障。
 
    可选 `core` 默认 `/etc/openclash/clash`，`core_home` 默认 `/etc/openclash`。诊断报告含节点域名及解析证据，权限为 0600，请勿公开上传。
 
