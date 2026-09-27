@@ -134,13 +134,37 @@ module EntryGroups
       begin
         File.open(settings['report_path'], 'w', 0600) { |f| f.write({ 'summary' => result, 'dns_evidence' => evidence }.to_yaml) }
       rescue StandardError
-        warn 'HomeRouter: could not save DNS evidence'
+        result['report_failed'] = true
       end
     end
-    puts "HomeRouter: #{result['groups']} regional ingress groups; #{result['unconfirmed_nodes']} unconfirmed nodes; ISP differences=#{result['local_differs_hosts']}"
+    result
   end
 end
 
 if $PROGRAM_NAME == __FILE__
-  EntryGroups.run(ARGV.fetch(0), ARGV[1] || '/etc/openclash/custom/entry-groups.yaml')
+  started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  begin
+    result = EntryGroups.run(ARGV.fetch(0), ARGV[1] || '/etc/openclash/custom/entry-groups.yaml')
+    if result.nil?
+      puts '跳过：没有入口候选池标记（已处理或非 HomeRouter 配置），文件未修改。'
+      exit 3
+    end
+    elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(1)
+    puts "成功：#{result['candidate_nodes']} 个候选节点 → #{result['groups']} 个地区入口组；未确认节点 #{result['unconfirmed_nodes']}；双 DoH 一致域名 #{result['doh_agreed_hosts']}；ISP 解析差异 #{result['local_differs_hosts']}；内核校验通过，已写入配置；耗时 #{elapsed} 秒。"
+    puts '提示：分组已完成，但 DNS 诊断报告保存失败。' if result['report_failed']
+  rescue StandardError => e
+    # Full diagnostics stay in the private stderr file, not the public plugin log.
+    warn e.full_message
+    reasons = {
+      'Trusted DNS unavailable' => '部分候选在两家 DoH 均未获得有效地址',
+      'Existing node DNS policy' => '已有节点 DNS 专项策略，需要人工核对',
+      'IPv6 profile not supported' => '当前配置启用了 IPv6，本脚本仅支持 IPv4',
+      'Candidate validation failed' => '候选配置未通过内核校验',
+      'HomeRouter markers missing' => '缺少 HomeRouter 自动容灾组',
+      'Generated group name collision' => '生成的组名与现有名称冲突'
+    }
+    reason = reasons.find { |key, _| e.message.include?(key) }&.last || '配置读取、DNS 查询或文件处理异常'
+    puts "失败：#{reason}；本次入口增强未应用，输入配置未修改。详情见 /tmp/openclash-entry-grouping.log 和 /tmp/openclash-entry-validation.log。"
+    exit 1
+  end
 end

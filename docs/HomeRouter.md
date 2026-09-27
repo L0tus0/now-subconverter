@@ -38,11 +38,13 @@
 
 依赖路由器 Ruby、YAML、curl（支持 HTTPS 和 CA 校验）、nslookup 及官方 Mihomo 内核。不需要 Ruby json/socket 扩展。
 
-1. 将 `scripts/openclash_entry_groups.rb` 和 `scripts/local_entry_dns.rb` 一起保存到 `/etc/openclash/custom/`。
+1. 将 `scripts/openclash_entry_groups.rb`、`scripts/local_entry_dns.rb` 和日志入口 `scripts/openclash_entry_groups.sh` 一起保存到 `/etc/openclash/custom/`。
 2. 在现有 `/etc/openclash/custom/openclash_custom_overwrite.sh` 的 `exit 0` 前加入调用，保留已有覆盖逻辑；如果已有 DNS 覆盖脚本，应在其后调用：
 
    ```sh
-   ruby /etc/openclash/custom/openclash_entry_groups.rb "$CONFIG_FILE" || LOG_OUT "Error: ingress grouping failed; original YAML retained"
+   # 本地双 DoH 核对入口，按出口地区 × 入口分组；组内测速、组间 fallback。
+   # 校验成功才写入配置，失败保留输入；开始/完成/失败会写入插件日志。
+   sh /etc/openclash/custom/openclash_entry_groups.sh "$CONFIG_FILE"
    ```
 
 3. 创建 `/etc/openclash/custom/entry-groups.yaml`：
@@ -66,6 +68,8 @@
 4. 使用 `config/HomeRouter.ini` 更新订阅并完整重新生成配置。主组选择 `♻️ 自动容灾` 一次，此后不用手选节点。检查运行配置和 API，外层应引用 `🇭🇰 香港入口 …` 等 URLTest 组。
 
 脚本先在内存生成候选，再由官方内核 `-t` 验证完整配置，成功后才原子替换目标 YAML。解析、分组或校验失败均不改动输入文件；钩子继续使用生成到当前阶段的可运行基础配置。若手动处理已增强文件，因已无候选池标记而直接返回，避免重复增强。
+
+LuCI 插件日志以 `Custom Overwrite Scripts (entry grouping)` 标记开始、成功、失败或跳过。成功摘要包含候选节点数、入口组数、未确认节点数、双 DoH 一致域名数、ISP 差异数、校验结果和耗时；“成功”表示配置生成成功，不表示全部节点健康。没有候选池时记录跳过。异常详情保存在权限 0600 的 `/tmp/openclash-entry-grouping.log`，内核校验详情在 `/tmp/openclash-entry-validation.log`；公开摘要不打印订阅凭证、域名或原始异常内容。快速启动若跳过整个配置生成阶段，也不会出现本脚本执行日志。
 
 订阅更新/配置重生成会重新运行脚本；OpenClash 快速启动复用旧运行配置时不会重新查询。需要强制生成时，可在备份后移除 `/tmp/openclash.change` 再重启 OpenClash。部署前保存旧脚本、设置和钩子；回滚时恢复这些文件并重新生成配置。
 
