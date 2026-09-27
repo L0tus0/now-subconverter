@@ -6,6 +6,12 @@ require_relative 'local_entry_dns'
 module EntryGroups
   AUTO = '♻️ 自动容灾'
   POOL = '🧩 入口候选'
+  FLAGS = {
+    '香港' => '🇭🇰', '台湾' => '🇹🇼', '新加坡' => '🇸🇬', '日本' => '🇯🇵',
+    '美国' => '🇺🇸', '韩国' => '🇰🇷', '加拿大' => '🇨🇦', '英国' => '🇬🇧',
+    '德国' => '🇩🇪', '法国' => '🇫🇷', '荷兰' => '🇳🇱', '土耳其' => '🇹🇷',
+    '澳大利亚' => '🇦🇺', '印度' => '🇮🇳'
+  }.freeze
   REGIONS = {
     '香港' => /香港|深港|\bHK\b|Hong\s*Kong|🇭🇰/i,
     '台湾' => /台湾|台灣|新北|彰化|\bTW\b|Taiwan|🇹🇼/i,
@@ -55,7 +61,7 @@ module EntryGroups
                'interrupt-existing-connections' => false }
     generated = sorted.map do |b|
       label = b[:ips].empty? ? b[:hosts].first + '（未确认）' : b[:ips].join('+')
-      common.merge('name' => '🧩 ' + b[:region] + '入口 ' + label, 'proxies' => b[:nodes])
+      common.merge('name' => FLAGS.fetch(b[:region], '🌐') + ' ' + b[:region] + '入口 ' + label, 'proxies' => b[:nodes])
     end
     generated << common.merge('name' => '🧩 无可用候选', 'proxies' => ['REJECT']) if generated.empty?
     keep = groups.reject { |g| g['name'] == POOL }

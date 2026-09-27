@@ -14,9 +14,9 @@ end
 c=fixture
 r=EntryGroups.transform(c,{'a.invalid'=>['1.1.1.1'],'b.invalid'=>['2.2.2.2'],'c.invalid'=>['1.1.1.1'],'d.invalid'=>['3.3.3.3']})
 auto=c['proxy-groups'].first
-check(auto['proxies'][0,2]==['🧩 香港入口 1.1.1.1','🧩 香港入口 2.2.2.2'],'Region/host ordering failed')
+check(auto['proxies'][0,2]==['🇭🇰 香港入口 1.1.1.1','🇭🇰 香港入口 2.2.2.2'],'Region/host ordering failed')
 check(auto['proxies'][2].include?('e.invalid') && auto['proxies'][3].include?('f.invalid'),'Unknown hosts incorrectly merged')
-check(auto['proxies'][4]=='🧩 台湾入口 1.1.1.1','Shared ingress must split by exit region')
+check(auto['proxies'][4]=='🇹🇼 台湾入口 1.1.1.1','Shared ingress must split by exit region')
 check(c['rules']==fixture['rules'] && c['dns']==fixture['dns'],'Unrelated config changed')
 check(c['proxy-groups'][1]==fixture['proxy-groups'].last,'Dedicated group changed')
 check(r['candidate_nodes']==6 && r['unconfirmed_nodes']==2,'Coverage incorrect')
@@ -30,7 +30,7 @@ EntryGroups.transform(c,{'a.invalid'=>['1.1.1.1'],'b.invalid'=>['1.1.1.1','2.2.2
 check(c['proxy-groups'][2]['proxies']==['香港 A'],'Partial overlap should not merge')
 c=fixture
 EntryGroups.transform(c,{'a.invalid'=>['9.9.9.9'],'b.invalid'=>['2.2.2.2']})
-check(c['proxy-groups'].first['proxies'].first=='🧩 香港入口 9.9.9.9','IP renumbering changed hostname order')
+check(c['proxy-groups'].first['proxies'].first=='🇭🇰 香港入口 9.9.9.9','IP renumbering changed hostname order')
 
 confirmed=LocalEntryDNS.confirmed({
  'same'=>{'doh'=>[['1.1.1.1'],['1.1.1.1']]},
